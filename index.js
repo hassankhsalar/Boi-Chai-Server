@@ -1,9 +1,37 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
 const port = process.env.port || 3000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+
+app.use(cors({
+  origin: ['http://localhost:5173'],
+  credentials: true
+}));
+app.use(express.json());
+app.use(cookieParser());
+
+
+const verifyToken = (req, res, next) => {
+  console.log('inside the verify token middleware', req.cookies)
+  const token = req.cookies?.token;
+
+  if(!token) {
+    return res.status(401).send({ message: 'unauthorized access' })
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: 'unauthorized access'})
+    }
+    req.user = decoded;
+    next();
+  })
+
+}
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@boi-chai-db.9rtez.mongodb.net/?retryWrites=true&w=majority&appName=boi-chai-DB`;
 
@@ -216,8 +244,12 @@ async function run() {
 
     //show borrowed books
     // Fetch borrowed books by user email
-    app.get('/borrowedBooks', async (req, res) => {
+    app.get('/borrowedBooks', verifyToken, async (req, res) => {
     const { email } = req.query; // Get email from query parameters
+    console.log('cuk cuk cookies', req.cookies);
+    if(req.user.email !== req.query.email){
+      return res.status(403).send({ message: 'Forbidden access' })
+    }
     try {
       const borrowedBooks = await borrowedBooksCollection.find({ 'user.email': email }).toArray();
       res.status(200).json(borrowedBooks);
@@ -319,6 +351,21 @@ async function run() {
       }
     });
 
+    //////////////////////////////////////////////
+
+    //Auth related APIs
+    app.post('/jwt', async(req, res) =>{
+      const user = req.body;
+      const token = jwt.sign(user, process.env.JWT_SECRET, {expiresIn: '1h'});
+      res
+      .cookie('token', token, {
+        httpOnly: true,
+        secure: false,
+
+      })
+      .send({success: true});
+    })
+
     ///////////////////////////////////////////////////////////////
 
   } finally {
@@ -328,8 +375,7 @@ async function run() {
 }
 run().catch(console.dir);
 
-app.use(cors());
-app.use(express.json());
+
 
 app.get('/', (req, res) => {
   res.send('job is falling');
