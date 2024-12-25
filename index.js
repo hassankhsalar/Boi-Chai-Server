@@ -47,9 +47,33 @@ app.get('/books/:id', async(req, res) => {
     res.send(result);
 })
 
+// POST: Add a New Book
+app.post('/books', async (req, res) => {
+    try {
+      const newBook = req.body;
+
+      // Validation (optional)
+      if (
+        !newBook.image ||
+        !newBook.name ||
+        !newBook.quantity ||
+        !newBook.authorName ||
+        !newBook.category ||
+        !newBook.shortDescription ||
+        !newBook.rating
+      ) {
+        return res.status(400).send({ error: 'All fields are required' });
+      }
+
+      // Insert into the database
+      const result = await booksCollection.insertOne(newBook);
+      res.status(201).send({ success: true, message: 'Book added successfully', result });
+    } catch (error) {
+      res.status(500).send({ error: 'Failed to add book' });
+    }
+  });
 
 
-// Book data Update API
 // Update book data in MongoDB
 app.put('/books/:id', async (req, res) => {
     const { id } = req.params; // Extract the book ID from the URL
@@ -93,11 +117,55 @@ app.put('/books/:id', async (req, res) => {
     }
   });
   
+  //User Related APIs
+  const usersCollection = client.db('boi-chai').collection('users');
+
+  // POST: Register a New User
+app.post('/register', async (req, res) => {
+    try {
+      const { name, email, photoURL } = req.body;
   
+      // Validation: Check if all fields are provided
+      if (!name || !email || !photoURL) {
+        return res.status(400).send({ error: 'All fields (name, email, photoURL) are required' });
+      }
+  
+      // Check if the user already exists
+      const existingUser = await usersCollection.findOne({ email });
+      if (existingUser) {
+        return res.status(400).send({ error: 'User already exists' });
+      }
+  
+      // Insert the new user into the database
+      const newUser = { name, email, photoURL };
+      const result = await usersCollection.insertOne(newUser);
+  
+      res.status(201).send({
+        success: true,
+        message: 'User registered successfully',
+        result,
+      });
+    } catch (error) {
+      console.error('Error registering user:', error);
+      res.status(500).send({ error: 'Internal Server Error' });
+    }
+  });
 
-
-
-
+  //Get User image in the navbar
+  app.get('/users/:email', async (req, res) => {
+    const email = req.params.email;
+    try {
+      const user = await client.db('boi-chai').collection('users').findOne({ email });
+      if (user) {
+        res.send(user);
+      } else {
+        res.status(404).send({ error: 'User not found' });
+      }
+    } catch (error) {
+      res.status(500).send({ error: 'Failed to fetch user' });
+    }
+  });
+  
 
 
 
