@@ -8,7 +8,11 @@ const port = process.env.port || 3000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 app.use(cors({
-  origin: ['http://localhost:5173'],
+  origin: [
+    'http://localhost:5173',
+    'https://boi-chai-3669a.web.app',
+    'https://boi-chai-3669a.firebaseapp.com'
+  ],
   credentials: true
 }));
 app.use(express.json());
@@ -206,7 +210,7 @@ async function run() {
     });
 
     // Update book quantity in MongoDB
-    app.patch('/books/:id', verifyToken, async (req, res) => {
+    app.patch('/books/:id', async (req, res) => {
       const { id } = req.params; // Extract the book ID from the URL
       const { quantity } = req.body; // Get the updated quantity from the request body
 
@@ -289,106 +293,32 @@ async function run() {
     // User Related APIs
     const usersCollection = client.db('boi-chai').collection('users');
 
-    // POST: Register a New User
-    app.post('/register', async (req, res) => {
-      try {
-        const { name, email, photoURL } = req.body;
-
-        // Validation: Check if all fields are provided
-        if (!name || !email || !photoURL) {
-          return res.status(400).send({ error: 'All fields (name, email, photoURL) are required' });
-        }
-
-        // Check if the user already exists
-        const existingUser = await usersCollection.findOne({ email });
-        if (existingUser) {
-          return res.status(400).send({ error: 'User already exists' });
-        }
-
-        // Insert the new user into the database
-        const newUser = { name, email, photoURL };
-        const result = await usersCollection.insertOne(newUser);
-
-        res.status(201).send({
-          success: true,
-          message: 'User registered successfully',
-          result,
-        });
-      } catch (error) {
-        console.error('Error registering user:', error);
-        res.status(500).send({ error: 'Internal Server Error' });
+    //registering new user
+    app.post('/users', async (req, res) => {
+      const { email, name, photoURL } = req.body;
+  
+      if (!email || !name) {
+          return res.status(400).json({ error: 'Email and name are required.' });
       }
-    });
-
-
-    // POST: Add a New User or Update Existing User
-app.post('/users', async (req, res) => {
-  try {
-    const { email, ...userData } = req.body;
-
-    // Check if the email is provided
-    if (!email) {
-      return res.status(400).send({ error: 'Email is required' });
-    }
-
-    // Check if the user already exists
-    const existingUser = await usersCollection.findOne({ email });
-
-    if (existingUser) {
-      // If the user exists, update their information
-      const result = await usersCollection.updateOne(
-        { email },
-        { $set: userData }
-      );
-      res.status(200).send({ message: 'User updated successfully', result });
-    } else {
-      // If the user does not exist, create a new entry
-      const result = await usersCollection.insertOne({ email, ...userData });
-      res.status(201).send({ message: 'User added successfully', result });
-    }
-  } catch (error) {
-    console.error('Error in /users endpoint:', error);
-    res.status(500).send({ error: 'Failed to process user data' });
-  }
-});
-
+  
+      try {
+          const existingUser = await usersCollection.findOne({ email });
+  
+          if (existingUser) {
+              return res.status(409).json({ message: 'User already exists.' });
+          }
+  
+          const newUser = { email, name, photoURL };
+          const result = await usersCollection.insertOne(newUser);
+          res.status(201).json({ success: true, userId: result.insertedId });
+      } catch (error) {
+          console.error('Error saving user:', error);
+          res.status(500).json({ error: 'Internal server error.' });
+      }
+  });
+  
     
-
-    // Get User image in the navbar
-    app.get('/users/:email', async (req, res) => {
-      const email = req.params.email;
-      try {
-        const user = await client.db('boi-chai').collection('users').findOne({ email });
-        if (user) {
-          res.send(user);
-        } else {
-          res.status(404).send({ error: 'User not found' });
-        }
-      } catch (error) {
-        res.status(500).send({ error: 'Failed to fetch user' });
-      }
-    });
-
-    // API to get logged-in user's information
-    app.get('/users', async (req, res) => {
-      try {
-        const email = req.query.email; // Extract the email from the query parameter
-        if (!email) {
-          return res.status(400).json({ error: 'Email is required to fetch user data' });
-        }
-
-        // Query the database for the user with the given email
-        const user = await usersCollection.findOne({ email });
-        if (user) {
-          res.status(200).json(user);
-        } else {
-          res.status(404).json({ error: 'User not found' });
-        }
-      } catch (error) {
-        console.error('Error fetching user:', error);
-        res.status(500).json({ error: 'Failed to fetch user information' });
-      }
-    });
+    
 
     //////////////////////////////////////////////
 
@@ -399,8 +329,9 @@ app.post('/users', async (req, res) => {
       res
       .cookie('token', token, {
         httpOnly: true,
-        secure: false,
-
+        secure: false
+        //secure: process.env.NODE_ENV=== 'production',
+        //sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
       })
       .send({success: true});
     })
@@ -409,7 +340,9 @@ app.post('/users', async (req, res) => {
     app.post('/logout', (req, res) => {
       res.clearCookie('token', {
         httpOnly: true,
-        secure: false,
+        secure: false
+        //secure: process.env.NODE_ENV=== 'production',
+        //sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
       })
       .send({ success: true })
     })
