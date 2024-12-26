@@ -320,6 +320,40 @@ async function run() {
       }
     });
 
+
+    // POST: Add a New User or Update Existing User
+app.post('/users', async (req, res) => {
+  try {
+    const { email, ...userData } = req.body;
+
+    // Check if the email is provided
+    if (!email) {
+      return res.status(400).send({ error: 'Email is required' });
+    }
+
+    // Check if the user already exists
+    const existingUser = await usersCollection.findOne({ email });
+
+    if (existingUser) {
+      // If the user exists, update their information
+      const result = await usersCollection.updateOne(
+        { email },
+        { $set: userData }
+      );
+      res.status(200).send({ message: 'User updated successfully', result });
+    } else {
+      // If the user does not exist, create a new entry
+      const result = await usersCollection.insertOne({ email, ...userData });
+      res.status(201).send({ message: 'User added successfully', result });
+    }
+  } catch (error) {
+    console.error('Error in /users endpoint:', error);
+    res.status(500).send({ error: 'Failed to process user data' });
+  }
+});
+
+    
+
     // Get User image in the navbar
     app.get('/users/:email', async (req, res) => {
       const email = req.params.email;
