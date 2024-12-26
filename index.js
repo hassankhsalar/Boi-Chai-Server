@@ -9,9 +9,9 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 app.use(cors({
   origin: [
-    'http://localhost:5173',
     'https://boi-chai-3669a.web.app',
-    'https://boi-chai-3669a.firebaseapp.com'
+    'https://boi-chai-3669a.firebaseapp.com',
+    'http://localhost:5173'
   ],
   credentials: true
 }));
@@ -302,7 +302,7 @@ async function run() {
   
   //url fetch for navbar
   app.get('/users/:email', async (req, res) => {
-    const { email } = req.params;
+    const { email } = req.params.email;
     try {
       const user = await usersCollection.findOne({ email });
       if (user) {
