@@ -317,7 +317,20 @@ async function run() {
       }
   });
   
-    
+  //url fetch for navbar
+  app.get('/users/:email', async (req, res) => {
+    const { email } = req.params;
+    try {
+      const user = await usersCollection.findOne({ email });
+      if (user) {
+        res.json(user);
+      } else {
+        res.status(404).send('User not found');
+      }
+    } catch (error) {
+      res.status(500).send('Error fetching user data');
+    }
+  });
     
 
     //////////////////////////////////////////////
