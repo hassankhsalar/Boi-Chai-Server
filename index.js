@@ -206,7 +206,7 @@ async function run() {
     });
 
     // Update book quantity in MongoDB
-    app.patch('/books/:id', async (req, res) => {
+    app.patch('/books/:id', verifyToken, async (req, res) => {
       const { id } = req.params; // Extract the book ID from the URL
       const { quantity } = req.body; // Get the updated quantity from the request body
 
@@ -403,6 +403,15 @@ app.post('/users', async (req, res) => {
 
       })
       .send({success: true});
+    })
+
+
+    app.post('/logout', (req, res) => {
+      res.clearCookie('token', {
+        httpOnly: true,
+        secure: false,
+      })
+      .send({ success: true })
     })
 
     ///////////////////////////////////////////////////////////////
