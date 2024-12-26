@@ -16,7 +16,7 @@ app.use(cookieParser());
 
 
 const verifyToken = (req, res, next) => {
-  console.log('inside the verify token middleware', req.cookies)
+  console.log('inside the verify token middleware')
   const token = req.cookies?.token;
 
   if(!token) {
@@ -169,7 +169,7 @@ async function run() {
     const borrowedBooksCollection = client.db('boi-chai').collection('borrowedBooks');
     app.post('/borrow', async (req, res) => {
       try {
-        const { bookId, returnDate, user } = req.body;
+        const { bookId, returnDate, user, image } = req.body;
 
         // Find the book by ID
         const book = await booksCollection.findOne({ _id: new ObjectId(bookId) });
@@ -189,6 +189,7 @@ async function run() {
           user,
           returnDate,
           borrowedOn: new Date(),
+          image,
         });
 
         // Update the book's quantity
@@ -246,7 +247,7 @@ async function run() {
     // Fetch borrowed books by user email
     app.get('/borrowedBooks', verifyToken, async (req, res) => {
     const { email } = req.query; // Get email from query parameters
-    console.log('cuk cuk cookies', req.cookies);
+    console.log('cuk cuk cookies');
     if(req.user.email !== req.query.email){
       return res.status(403).send({ message: 'Forbidden access' })
     }
@@ -262,16 +263,20 @@ async function run() {
       //delete from borrowed list
       app.delete('/borrowedBooks/:id', async (req, res) => {
         const { id } = req.params;
-        const { userEmail } = req.body; // Get user email from request body
+        const { userEmail } = req.body; // Ensure correct key is used
       
         try {
-          // First, remove the book from the borrowedBooks collection
-          await borrowedBooksCollection.deleteOne({ bookId: id, user: userEmail });
           
-          // Then, increase the book's quantity in the books collection
+          // Remove the book from the borrowedBooks collection
+          await borrowedBooksCollection.deleteOne({
+            bookId: new ObjectId(id), // Convert to ObjectId if necessary
+            'user.email': userEmail, // Ensure this matches your DB field structure
+          });
+      
+          // Increase the book's quantity in the books collection
           await booksCollection.updateOne(
-            { _id: new ObjectId(id) },
-            { $inc: { quantity: 1 } } // Increment quantity
+            { _id: new ObjectId(id) }, // Ensure correct field for matching
+            { $inc: { quantity: 1 } }
           );
       
           res.status(200).json({ message: 'Book returned successfully' });
@@ -279,7 +284,7 @@ async function run() {
           console.error('Error returning book:', error);
           res.status(500).json({ message: 'Failed to return book' });
         }
-      });  
+      });
 
     // User Related APIs
     const usersCollection = client.db('boi-chai').collection('users');
