@@ -39,7 +39,7 @@ const verifyToken = (req, res, next) => {
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@boi-chai-db.9rtez.mongodb.net/?retryWrites=true&w=majority&appName=boi-chai-DB`;
 
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -52,8 +52,8 @@ async function updateQuantities() {
   try {
     const booksCollection = client.db('boi-chai').collection('books');
     const result = await booksCollection.updateMany(
-      { quantity: { $type: "string" } },  // Find documents where quantity is a string
-      [{ $set: { quantity: { $toInt: "$quantity" } } }]  // Convert quantity to integer
+      { quantity: { $type: "string" } },  
+      [{ $set: { quantity: { $toInt: "$quantity" } } }]  
     );
 
     console.log(`${result.modifiedCount} documents updated.`);
@@ -65,10 +65,10 @@ async function updateQuantities() {
 async function run() {
   try {
     // Connect the client to the server
-    await client.connect();
+    //await client.connect();
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    //await client.db("admin").command({ ping: 1 });
+    //console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
     // Call updateQuantities to ensure all quantities are numeric
     await updateQuantities();
@@ -80,10 +80,10 @@ async function run() {
 
     // Fetch all books or filter by category
     app.get('/books', async (req, res) => {
-      const { category } = req.query; // Get the category from query parameters
+      const { category } = req.query; 
       try {
-        const query = category ? { category } : {}; // Create a query object
-        const cursor = booksCollection.find(query); // Use the query object to find documents
+        const query = category ? { category } : {}; 
+        const cursor = booksCollection.find(query); 
         const result = await cursor.toArray();
         res.send(result);
       } catch (error) {
@@ -104,7 +104,7 @@ async function run() {
       try {
         const newBook = req.body;
 
-        // Validation (optional)
+        
         if (
           !newBook.image ||
           !newBook.name ||
@@ -127,19 +127,15 @@ async function run() {
 
     // Update book data in MongoDB
     app.put('/books/:id', async (req, res) => {
-      const { id } = req.params; // Extract the book ID from the URL
-      const updatedBook = req.body; // Get the updated book data from the request body
-
-      // Check if the provided ID is a valid MongoDB ObjectId
+      const { id } = req.params; 
+      const updatedBook = req.body; 
       if (!ObjectId.isValid(id)) {
         return res.status(400).send({ error: 'Invalid ID format' });
       }
 
       try {
-        // Query to find the document by its ID
         const query = { _id: new ObjectId(id) };
 
-        // Define the update document
         const updateDocument = {
           $set: {
             image: updatedBook.image,
@@ -152,15 +148,12 @@ async function run() {
           },
         };
 
-        // Perform the update operation
         const result = await booksCollection.updateOne(query, updateDocument);
 
-        // Handle cases where the document is not found
         if (result.matchedCount === 0) {
           return res.status(404).send({ error: 'Book not found' });
         }
 
-        // Send a success response
         res.send({ message: 'Book updated successfully', result });
       } catch (error) {
         console.error('Error updating book:', error);
@@ -175,18 +168,15 @@ async function run() {
       try {
         const { bookId, returnDate, user, image } = req.body;
 
-        // Find the book by ID
         const book = await booksCollection.findOne({ _id: new ObjectId(bookId) });
         if (!book) {
           return res.status(404).json({ message: 'Book not found' });
         }
 
-        // Check if the quantity is sufficient
         if (book.quantity <= 0) {
           return res.status(400).json({ message: 'Book out of stock' });
         }
 
-        // Add the borrowed book to the borrowedBooks collection
         await borrowedBooksCollection.insertOne({
           bookId: new ObjectId(bookId),
           name: book.name,
@@ -196,7 +186,6 @@ async function run() {
           image,
         });
 
-        // Update the book's quantity
         await booksCollection.updateOne(
           { _id: new ObjectId(bookId) },
           { $inc: { quantity: -1 } }
@@ -209,36 +198,31 @@ async function run() {
       }
     });
 
-    // Update book quantity in MongoDB
     app.patch('/books/:id', async (req, res) => {
-      const { id } = req.params; // Extract the book ID from the URL
-      const { quantity } = req.body; // Get the updated quantity from the request body
+      const { id } = req.params; 
+      const { quantity } = req.body; 
 
-      // Check if the provided ID is a valid MongoDB ObjectId
+      
       if (!ObjectId.isValid(id)) {
         return res.status(400).send({ error: 'Invalid ID format' });
       }
 
       try {
-        // Query to find the document by its ID
+        
         const query = { _id: new ObjectId(id) };
 
-        // Define the update document
         const updateDocument = {
           $set: {
-            quantity: quantity, // Update the quantity
+            quantity: quantity, 
           },
         };
 
-        // Perform the update operation
         const result = await booksCollection.updateOne(query, updateDocument);
 
-        // Handle cases where the document is not found
         if (result.matchedCount === 0) {
           return res.status(404).send({ error: 'Book not found' });
         }
 
-        // Send a success response
         res.send({ message: 'Book quantity updated successfully', result });
       } catch (error) {
         console.error('Error updating book quantity:', error);
@@ -250,7 +234,7 @@ async function run() {
     //show borrowed books
     // Fetch borrowed books by user email
     app.get('/borrowedBooks', verifyToken, async (req, res) => {
-    const { email } = req.query; // Get email from query parameters
+    const { email } = req.query; 
     console.log('cuk cuk cookies');
     if(req.user.email !== req.query.email){
       return res.status(403).send({ message: 'Forbidden access' })
@@ -267,19 +251,18 @@ async function run() {
       //delete from borrowed list
       app.delete('/borrowedBooks/:id', async (req, res) => {
         const { id } = req.params;
-        const { userEmail } = req.body; // Ensure correct key is used
+        const { userEmail } = req.body; 
       
         try {
           
-          // Remove the book from the borrowedBooks collection
           await borrowedBooksCollection.deleteOne({
-            bookId: new ObjectId(id), // Convert to ObjectId if necessary
-            'user.email': userEmail, // Ensure this matches your DB field structure
+            bookId: new ObjectId(id), 
+            'user.email': userEmail, 
           });
       
           // Increase the book's quantity in the books collection
           await booksCollection.updateOne(
-            { _id: new ObjectId(id) }, // Ensure correct field for matching
+            { _id: new ObjectId(id) }, 
             { $inc: { quantity: 1 } }
           );
       
@@ -342,9 +325,9 @@ async function run() {
       res
       .cookie('token', token, {
         httpOnly: true,
-        secure: false
-        //secure: process.env.NODE_ENV=== 'production',
-        //sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        //secure: false
+        secure: process.env.NODE_ENV=== 'production',
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
       })
       .send({success: true});
     })
@@ -353,9 +336,9 @@ async function run() {
     app.post('/logout', (req, res) => {
       res.clearCookie('token', {
         httpOnly: true,
-        secure: false
-        //secure: process.env.NODE_ENV=== 'production',
-        //sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        //secure: false
+        secure: process.env.NODE_ENV=== 'production',
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
       })
       .send({ success: true })
     })
