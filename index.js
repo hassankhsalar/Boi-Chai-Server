@@ -71,7 +71,7 @@ async function run() {
     //console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
     // Call updateQuantities to ensure all quantities are numeric
-    await updateQuantities();
+    //await updateQuantities();
 
     ///////////////////////////////////////////////////////////////
 
@@ -302,7 +302,12 @@ async function run() {
   
   //url fetch for navbar
   app.get('/users/:email', async (req, res) => {
-    const { email } = req.params.email;
+    const { email } = req.params;
+  
+    if (!email || !email.includes('@')) {
+      return res.status(400).send('Invalid email format');
+    }
+  
     try {
       const user = await usersCollection.findOne({ email });
       if (user) {
@@ -311,6 +316,7 @@ async function run() {
         res.status(404).send('User not found');
       }
     } catch (error) {
+      console.error('Error fetching user data:', error);
       res.status(500).send('Error fetching user data');
     }
   });
