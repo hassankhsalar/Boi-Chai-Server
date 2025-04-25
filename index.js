@@ -275,6 +275,7 @@ async function run() {
 
     // User Related APIs
     const usersCollection = client.db('boi-chai').collection('users');
+    
 
     //registering new user
     app.post('/users', async (req, res) => {
@@ -319,6 +320,21 @@ async function run() {
       console.error('Error fetching user data:', error);
       res.status(500).send('Error fetching user data');
     }
+  });
+
+  ///CTA subscriber
+  //const subsCollection = client.db('boi-chai').collection('subscriber');
+  app.post("/subscriber", (req, res) => {
+    const { email } = req.body;
+  
+    if (!email || !email.includes("@")) {
+      return res.status(400).json({ message: "Invalid email address." });
+    }
+  
+    // Simulate saving email to DB (MongoDB, etc.)
+    console.log(`New subscriber: ${email}`);
+  
+    return res.status(200).json({ message: "Thank you for subscribing!" });
   });
     
 
